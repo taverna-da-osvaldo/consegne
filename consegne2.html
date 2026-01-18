@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consegne Pizzeria</title>
+
+<style>
+body {
+font-family: Arial, sans-serif;
+background: #f4f4f4;
+padding: 15px;
+}
+h2 {
+margin-top: 20px;
+}
+input, select, button, a {
+width: 100%;
+padding: 10px;
+margin: 6px 0;
+font-size: 16px;
+}
+button {
+background: #333;
+color: #fff;
+border: none;
+border-radius: 4px;
+}
+.order {
+background: #fff;
+padding: 10px;
+margin: 10px 0;
+border-radius: 6px;
+}
+.done {
+text-decoration: line-through;
+opacity: 0.5;
+}
+.send {
+display: block;
+background: #25D366;
+color: #fff;
+text-align: center;
+border-radius: 4px;
+text-decoration: none;
+margin-top: 8px;
+}
+</style>
+</head>
+
+<body>
+<script>
+if ("serviceWorker" in navigator) {
+navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+<h2>📦 Nuovo Ordine</h2>
+
+<input id="comanda" placeholder="Numero comanda / scontrino">
+<input id="cliente" placeholder="Nome cliente">
+<input id="indirizzo" placeholder="Indirizzo consegna">
+<input id="importo" placeholder="Importo €" inputmode="decimal">
+
+<select id="pagamento">
+<option value="">Metodo di pagamento</option>
+<option value="Contanti">Contanti</option>
+<option value="Pagamento elettronico">Pagamento elettronico</option>
+</select>
+
+<button type="button" onclick="aggiungiOrdine()">Aggiungi ordine</button>
+
+<h2>🛵 Ordini</h2>
+<div id="lista"></div>
+
+<script>
+let ordini = JSON.parse(localStorage.getItem("ordini")) || [];
+
+function salva() {
+localStorage.setItem("ordini", JSON.stringify(ordini));
+render();
+}
+
+function aggiungiOrdine() {
+if (!indirizzo.value || !importo.value) {
+alert("Inserisci almeno indirizzo e importo");
+return;
+}
+
+ordini.push({
+id: Date.now(),
+comanda: comanda.value,
+cliente: cliente.value,
+indirizzo: indirizzo.value,
+importo: importo.value,
+pagamento: pagamento.value,
+consegnato: false
+});
+
+comanda.value = "";
+cliente.value = "";
+indirizzo.value = "";
+importo.value = "";
+pagamento.value = "";
+
+salva();
+}
+
+function render() {
+lista.innerHTML = "";
+
+ordini.forEach(o => {
+const msg =
+`📦 NUOVO ORDINE
+Comanda/Scontrino: ${o.comanda}
+Cliente: ${o.cliente}
+Indirizzo: ${o.indirizzo}
+Importo: ${o.importo}€
+Pagamento: ${o.pagamento}
+
+🧭 Naviga:
+https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.indirizzo)}
+
+✅ CONSEGNATO:
+${location.href}?done=${o.id}`;
+
+const waUrl = "https://wa.me/3482255366?text=" + encodeURIComponent(msg);
+
+const div = document.createElement("div");
+div.className = "order" + (o.consegnato ? " done" : "");
+div.innerHTML = `
+<b>Comanda ${o.comanda || "-"}</b><br>
+${o.cliente}<br>
+€${o.importo} – ${o.pagamento}<br>
+<a class="send" href="${waUrl}">INVIA SU WHATSAPP</a>
+`;
+lista.appendChild(div);
+});
+}
+
+const params = new URLSearchParams(location.search);
+if (params.get("done")) {
+const id = Number(params.get("done"));
+ordini = ordini.map(o =>
+o.id === id ? { ...o, consegnato: true } : o
+);
+salva();
+}
+
+render();
+</script>
+
+</body>
+</html>
